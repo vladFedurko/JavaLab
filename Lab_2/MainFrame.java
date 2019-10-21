@@ -1,23 +1,14 @@
 package Lab_2;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Toolkit;
+import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JTextField;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class MainFrame extends JFrame{
 
@@ -41,21 +32,30 @@ public class MainFrame extends JFrame{
 
     private Double[] mem = new Double[3];
 
-    private int varNumber;
+    private int varNumber = 1;
     private JLabel MemXLabel = new JLabel("X = 0.0");
     private JLabel MemYLabel = new JLabel("Y = 0.0");
     private JLabel MemZLabel = new JLabel("Z = 0.0");
 
-    private Image f1 = Toolkit.getDefaultToolkit().getImage("f1.bmp");
-    private Image f2 = Toolkit.getDefaultToolkit().getImage("f2.bmp");
+    private Image f1, f2;
+    {
+        try {
+            f1 = ImageIO.read(new File("C:\\Users\\use\\IdeaProjects\\LAb\\src/Lab_2/f1.bmp"));
+            f2 = ImageIO.read(new File("src/Lab_2/f2.bmp"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-    private Box hImageBox = Box.createHorizontalBox();
+    private ImageComponent img = new ImageComponent(f1);
 
-    public Double calculate1(Double x, Double y, Double z) {
+    @NotNull
+    private Double calculate1(Double x, Double y, Double z) {
         return Math.pow(Math.log((1 + x) * (1 + x)) + Math.cos(Math.PI * z * z * z), Math.sin(y)) + Math.pow(Math.exp(x * x) + Math.cos(Math.exp(z)) + Math.sqrt(1 / y), 1 / x);
     }
 
-    public Double calculate2(Double x, Double y, Double z) {
+    @NotNull
+    private Double calculate2(Double x, Double y, Double z) {
         return Math.pow(Math.cos(Math.PI * x * x * x) + Math.log((1 + y) * (1 + y)), 1D / 4) * (Math.exp(z * z) + Math.sqrt(1 / x) + Math.cos(Math.exp(y)));
     }
 
@@ -66,9 +66,10 @@ public class MainFrame extends JFrame{
                 MainFrame.this.formulaId = formulaId;
                 //imagePane.updateUI();
                 if (formulaId == 1)
-                    getGraphics().drawImage(f1,0, 0 ,null);
+                    img.setImage(f1);
                 else
-                    getGraphics().drawImage(f2,0, 0 ,null);
+                    img.setImage(f2);
+                getContentPane().repaint();
             }
         });
         radioButtons.add(button);
@@ -90,8 +91,10 @@ public class MainFrame extends JFrame{
 
     public MainFrame() {
         super("Вычисление формулы");
+
         setSize(WIDTH, HEIGHT);
         Toolkit kit = Toolkit.getDefaultToolkit();
+
         setLocation((kit.getScreenSize().width - WIDTH)/2,
                 (kit.getScreenSize().height - HEIGHT)/2);
         hboxFormulaType.add(Box.createHorizontalGlue());
@@ -129,7 +132,7 @@ public class MainFrame extends JFrame{
         hboxVariables.add(Box.createHorizontalGlue());
         JLabel labelForResult = new JLabel("Результат:");
         //labelResult = new JLabel("0");
-        textFieldResult = new JTextField("0", 10);
+        textFieldResult = new JTextField("0", 15);
         textFieldResult.setMaximumSize(
                 textFieldResult.getPreferredSize());
         //textFieldResult.setEnabled(false);
@@ -262,6 +265,7 @@ public class MainFrame extends JFrame{
                 BorderFactory.createLineBorder(Color.GREEN));
         Box contentBox = Box.createVerticalBox();
         contentBox.add(Box.createVerticalGlue());
+        contentBox.add(img);
         contentBox.add(hboxFormulaType);
         contentBox.add(hboxVariables);
         contentBox.add(hboxResult);
@@ -276,4 +280,22 @@ public class MainFrame extends JFrame{
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
+}
+
+class ImageComponent extends JComponent
+{
+    ImageComponent(Image img)
+    {
+        image = img;
+    }
+    public void paintComponent(Graphics g)
+    {
+        if(image == null) return;
+        g.drawImage(image, 0, 0, null);
+    }
+    void setImage(Image img)
+    {
+        image = img;
+    }
+    private Image image;
 }
