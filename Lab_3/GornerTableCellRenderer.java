@@ -54,7 +54,8 @@ public class GornerTableCellRenderer implements TableCellRenderer {
                 else {
                     if (simple != 2 && (simple % 2) == 0)
                         return panel;
-                    for (int i = 3; i < simple; i += 2)
+                    int n = (int)Math.round(Math.sqrt(simple));
+                    for (int i = 3; i < n; i += 2)
                     {
                         if ((simple % i) == 0)
                             return panel;

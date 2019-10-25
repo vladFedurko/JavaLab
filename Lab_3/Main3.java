@@ -5,27 +5,9 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
+import java.io.*;
+import javax.imageio.ImageIO;
+import javax.swing.*;
 
 @SuppressWarnings("serial")
 
@@ -40,6 +22,7 @@ public class Main3 extends JFrame {
 
     private JMenuItem saveToTextMenuItem;
     private JMenuItem saveToGraphicsMenuItem;
+    private JMenuItem saveToCSVMenuItem;
     private JMenuItem searchValueMenuItem;
     private JMenuItem searchSimpleItem;
 
@@ -98,6 +81,21 @@ public class Main3 extends JFrame {
         saveToGraphicsMenuItem = fileMenu.add(saveToGraphicsAction);
         saveToGraphicsMenuItem.setEnabled(false);
 
+
+        Action saveToCSVAction = new AbstractAction("Сохранить данные в CSV файл") {
+            public void actionPerformed(ActionEvent event) {
+                if (fileChooser == null) {
+                    fileChooser = new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if (fileChooser.showSaveDialog(Main3.this) == JFileChooser.APPROVE_OPTION)
+                    saveToCSVFile(fileChooser.getSelectedFile());
+            }
+        };
+        saveToCSVMenuItem = fileMenu.add(saveToCSVAction);
+        saveToCSVMenuItem.setEnabled(false);
+
+
         Action searchValueAction = new AbstractAction("Найти значение многочлена") {
             public void actionPerformed(ActionEvent event) {
                 String value = JOptionPane.showInputDialog(
@@ -120,7 +118,8 @@ public class Main3 extends JFrame {
 
         Action openAboutProgram = new AbstractAction("О программе") {
             public void actionPerformed(ActionEvent event) {
-                JOptionPane.showMessageDialog(Main3.this, "Федурко Владислав Юрьевич\n9 группа\n2 курс", "О программе", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(Main3.this, "Федурко Владислав Юрьевич\n9 группа\n2 курс", "О программе",
+                        JOptionPane.INFORMATION_MESSAGE, new ImageIcon("src/Lab_3/6.jpg"));
             }
         };
         JMenuItem AboutProgram;
@@ -178,6 +177,7 @@ public class Main3 extends JFrame {
                 getContentPane().validate();
                 saveToTextMenuItem.setEnabled(true);
                 saveToGraphicsMenuItem.setEnabled(true);
+                saveToCSVMenuItem.setEnabled(true);
                 searchValueMenuItem.setEnabled(true);
                 searchSimpleItem.setEnabled(true);
                 } catch (NumberFormatException ex) {
@@ -198,6 +198,7 @@ public class Main3 extends JFrame {
                 hBoxResult.add(new JPanel());
                 saveToTextMenuItem.setEnabled(false);
                 saveToGraphicsMenuItem.setEnabled(false);
+                saveToCSVAction.setEnabled(false);
                 searchValueMenuItem.setEnabled(false);
                 searchSimpleItem.setEnabled(false);
                 getContentPane().validate();
@@ -236,6 +237,8 @@ public class Main3 extends JFrame {
 
         }
     }
+
+
     protected void saveToTextFile(File selectedFile) {
         try {
             PrintStream out = new PrintStream(selectedFile);
@@ -257,6 +260,21 @@ public class Main3 extends JFrame {
 
         }
     }
+
+
+    public void saveToCSVFile (File selectedFile) {
+        try {
+            PrintStream out = new PrintStream(selectedFile);
+            for (int i = 0; i < data.getRowCount(); ++i) {
+                out.println(data.getValueAt(i,0) + ";" + data.getValueAt(i,1));
+            }
+        }
+        catch (FileNotFoundException ignored) {
+
+        }
+    }
+
+
     public static void toStart(String[] args) {
         if (args.length == 0) {
             System.out.println("Невозможно табулировать многочлен, для которого не задано ни одного коэффициента!");
