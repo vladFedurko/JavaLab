@@ -40,7 +40,7 @@ public class MainFrame extends JFrame{
     private Image f1, f2;
     {
         try {
-            f1 = ImageIO.read(new File("C:\\Users\\use\\IdeaProjects\\LAb\\src/Lab_2/f1.bmp"));
+            f1 = ImageIO.read(new File("src/Lab_2/f1.bmp"));
             f2 = ImageIO.read(new File("src/Lab_2/f2.bmp"));
         } catch (IOException e) {
             e.printStackTrace();
@@ -280,22 +280,25 @@ public class MainFrame extends JFrame{
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
-}
 
-class ImageComponent extends JComponent
-{
-    ImageComponent(Image img)
+
+    class ImageComponent extends JPanel
     {
-        image = img;
+        ImageComponent(Image img)
+        {
+            image = img;
+        }
+        public void paintComponent(Graphics g)
+        {
+            super.paintComponent(g);
+            if(image == null) return;
+            int imageWidth = image.getWidth(this);
+            g.drawImage(image, 100, 0, imageWidth - 100, 25,this);
+        }
+        void setImage(Image img)
+        {
+            image = img;
+        }
+        private Image image;
     }
-    public void paintComponent(Graphics g)
-    {
-        if(image == null) return;
-        g.drawImage(image, 0, 0, null);
-    }
-    void setImage(Image img)
-    {
-        image = img;
-    }
-    private Image image;
 }
