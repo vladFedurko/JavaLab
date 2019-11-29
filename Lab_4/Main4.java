@@ -3,11 +3,7 @@ package Lab_4;
 import java.awt.BorderLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import javax.swing.*;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
@@ -23,7 +19,8 @@ public class Main4 extends JFrame{
     private JCheckBoxMenuItem showMarkersMenuItem;
     private JCheckBoxMenuItem rotateGraphicMenuItem;
     private JCheckBoxMenuItem showGridMenuItem;
-    private JMenuItem undoChangesBut;
+    private JMenuItem undoChangesButton;
+    private JMenuItem saveAllChangesButton;
 
     private GraphicsDisplay display;
 
@@ -56,7 +53,8 @@ public class Main4 extends JFrame{
                 if (fileChooser.showOpenDialog(Main4.this) == JFileChooser.APPROVE_OPTION) {
                     openGraphics(fileChooser.getSelectedFile());
                 }
-                undoChangesBut.setEnabled(fileLoaded);
+                undoChangesButton.setEnabled(fileLoaded);
+                saveAllChangesButton.setEnabled(fileLoaded);
             }
         };
         fileMenu.add(openGraphicsAction);
@@ -69,9 +67,25 @@ public class Main4 extends JFrame{
                 }
             }
         };
-        undoChangesBut = new JMenuItem(undoChangesAction);
-        undoChangesBut.setEnabled(false);
-        fileMenu.add(undoChangesBut);
+        undoChangesButton = new JMenuItem(undoChangesAction);
+        undoChangesButton.setEnabled(false);
+        fileMenu.add(undoChangesButton);
+
+        Action saveAllChangesAction = new AbstractAction("Сохранить все изменения") {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                Double[][] data = display.getGraphicsData();
+                if (fileChooser == null) {
+                    fileChooser = new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if (fileChooser.showSaveDialog(Main4.this) == JFileChooser.APPROVE_OPTION)
+                    saveToFile(data, fileChooser.getSelectedFile());
+            }
+        };
+        saveAllChangesButton = new JMenuItem(saveAllChangesAction);
+        saveAllChangesButton.setEnabled(false);
+        fileMenu.add(saveAllChangesButton);
 
         JMenu graphicsMenu = new JMenu("График");
         menuBar.add(graphicsMenu);
@@ -164,4 +178,18 @@ public class Main4 extends JFrame{
         public void menuCanceled(MenuEvent e) {
         }
     }
+
+    private void saveToFile (Double[][] data, File selectedFile) {
+        try {
+            DataOutputStream out = new DataOutputStream(new FileOutputStream(selectedFile));
+            for (int i = 0; i < data.length; ++i) {
+                out.writeDouble((Double)data[i][0]);
+                out.writeDouble((Double)data[i][1]);
+            }
+            out.close();
+        } catch (Exception ignored) {
+
+        }
+    }
 }
+

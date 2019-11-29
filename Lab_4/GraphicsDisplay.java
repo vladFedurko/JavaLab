@@ -37,6 +37,9 @@ public class GraphicsDisplay extends JPanel {
     }
 
     private MouseClickEvents.ZoomRect zoom;
+    private int changingValue = -1;
+
+    private int firstVisibleValue = 0;
 
     private double minX;
     private double maxX;
@@ -48,14 +51,17 @@ public class GraphicsDisplay extends JPanel {
     private double scaleY;
 
     private BasicStroke graphicsStroke;
+
     private BasicStroke axisStroke;
     private BasicStroke markerStroke;
     private BasicStroke gridStroke;
-    private BasicStroke zRectStroke;
+    private BasicStroke zoomRectStroke;
+    private BasicStroke highlightingStroke;
 
     private DecimalFormat formatter = (DecimalFormat) NumberFormat.getInstance();
 
     private Font axisFont;
+    private Font highlightingFont;
 
     public GraphicsDisplay() {
         MouseClickEvents a = new MouseClickEvents(this);
@@ -67,7 +73,9 @@ public class GraphicsDisplay extends JPanel {
         markerStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
         gridStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
         axisFont = new Font("Serif", Font.BOLD, 36);
-        zRectStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {10, 10}, 0.0f);
+        zoomRectStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {10, 10}, 0.0f);
+        highlightingStroke = new BasicStroke(3.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
+        highlightingFont = new Font("Serif", Font.PLAIN, 8);
 
         formatter.setMaximumFractionDigits(10);
         formatter.setGroupingUsed(false);
@@ -77,13 +85,15 @@ public class GraphicsDisplay extends JPanel {
         formatter.setDecimalFormatSymbols(dottedDouble);
     }
 
-
     public void showGraphics(Double[][] graphicsData) {
         this.graphicsData = graphicsData;
         scaled = false;
         repaint();
     }
 
+    public Double[][] getGraphicsData() {
+        return graphicsData;
+    }
 
     public void setShowAxis(boolean showAxis) {
         this.showAxis = showAxis;
@@ -168,6 +178,21 @@ public class GraphicsDisplay extends JPanel {
             }
         }
 
+        int l = 0, r = graphicsData.length - 1;
+        while (l < r - 1)
+        {
+            int mid = (l + r) >> 1;
+            if(graphicsData[mid][0] > minX)
+            {
+                r = mid;
+            } else
+            {
+                l = mid;
+            }
+        }
+
+        firstVisibleValue = l;
+
         Graphics2D canvas = (Graphics2D) g;
         Stroke oldStroke = canvas.getStroke();
         Color oldColor = canvas.getColor();
@@ -190,7 +215,7 @@ public class GraphicsDisplay extends JPanel {
         if (showMarkers) paintMarkers(canvas);
 
         if (drawRect) {
-            canvas.setStroke(zRectStroke);
+            canvas.setStroke(zoomRectStroke);
             canvas.setColor(Color.BLACK);
             canvas.drawRect(zoom.x1, zoom.y1, zoom.x2 - zoom.x1, zoom.y2 - zoom.y1);
         }
@@ -208,18 +233,7 @@ public class GraphicsDisplay extends JPanel {
 
         GeneralPath graphics = new GeneralPath();
         {
-            int l = 0, r = graphicsData.length - 1;
-            while (l < r - 1)
-            {
-                int mid = (l + r) >> 1;
-                if(graphicsData[mid][0] > minX)
-                {
-                    r = mid;
-                } else
-                {
-                    l = mid;
-                }
-            }
+            int l = firstVisibleValue;
             int a = l == 0 ? l : l - 1;
             double max = xyToPoint(0, maxY).getY();
             double min = xyToPoint(0, minY).getY();
@@ -251,37 +265,22 @@ public class GraphicsDisplay extends JPanel {
     protected void paintMarkers(Graphics2D canvas) {
         canvas.setStroke(markerStroke);
 
-        int l = 0, r = graphicsData.length - 1;
-        while (l < r - 1)
-        {
-            int mid = (l + r) >> 1;
-            if(graphicsData[mid][0] > minX)
-            {
-                r = mid;
-            } else
-            {
-                l = mid;
-            }
-        }
+        int l = firstVisibleValue;
 
         for ( ; l  < graphicsData.length && graphicsData[l][0] < maxX; ++l) {
-            if (graphicsData[l][1] < maxY && graphicsData[l][1] > minY)
-                drawMarker(canvas, l);
-        }
-        if (l < graphicsData.length) {
-            if (graphicsData[l][1] < maxY && graphicsData[l][1] > minY)
+            if (graphicsData[l][1] <= maxY && graphicsData[l][1] >= minY)
                 drawMarker(canvas, l);
         }
     }
 
     protected void drawMarker(Graphics2D canvas, int i) {
-        double dx = 5D;
-        double dy = 3D;
+        int dx = 5;
+        int dy = 3;
 
         canvas.setColor(Color.RED);
 
-        double xCenter = xyToPoint(graphicsData[i][0], graphicsData[i][1]).getX();
-        double yCenter = xyToPoint(graphicsData[i][0], graphicsData[i][1]).getY();
+        int xCenter = (int)xyToPoint(graphicsData[i][0], graphicsData[i][1]).getX();
+        int yCenter = (int)xyToPoint(graphicsData[i][0], graphicsData[i][1]).getY();
 
         GeneralPath marker = new GeneralPath();
 
@@ -299,19 +298,35 @@ public class GraphicsDisplay extends JPanel {
         marker.moveTo(xCenter + dy, yCenter + dx);
         marker.lineTo(xCenter - dy, yCenter + dx);
 
-        int a = graphicsData[i][1].intValue();
-        if (graphicsData[i][1] < 0)
-            --a;
-        a = Math.abs(a);
-        while (a > 0) {
-            if (a % 2 != 0) {
-                canvas.setColor(Color.BLACK);
-                break;
-            }
-            a /= 10;
-        }
+        if (i == changingValue) {
+            canvas.setColor(Color.BLUE);
+            Stroke oldStroke = canvas.getStroke();
+            canvas.setStroke(highlightingStroke);
+            canvas.draw(marker);
+            canvas.setStroke(oldStroke);
 
-        canvas.draw(marker);
+
+            FontRenderContext context = canvas.getFontRenderContext();
+            canvas.setFont(highlightingFont);
+            String label = "X=" + formatter.format(graphicsData[i][0]) + ", Y=" + formatter.format(graphicsData[i][1]);
+            Rectangle2D bounds = axisFont.getStringBounds(label, context);
+            canvas.drawString(label, (float)(xyToPoint(graphicsData[i][0], 0).getX() + 8),
+                    (float)(xyToPoint(0, graphicsData[i][1]).getY()) - 5);
+        }
+        else {
+            int a = graphicsData[i][1].intValue();
+            if (graphicsData[i][1] < 0)
+                --a;
+            a = Math.abs(a);
+            while (a > 0) {
+                if (a % 2 != 0) {
+                    canvas.setColor(Color.BLACK);
+                    break;
+                }
+                a /= 10;
+            }
+            canvas.draw(marker);
+        }
     }
 
 
@@ -691,6 +706,38 @@ public class GraphicsDisplay extends JPanel {
 
     public void setScaled(boolean scaled) {
         this.scaled = scaled;
+    }
+
+    public boolean highlightThePoint (Point point) {
+        if (graphicsData == null || graphicsData.length == 0) return false;
+        int radius = 7;
+        int distance;
+        int minDistance = Integer.MAX_VALUE;
+        changingValue = -1;
+        Point value;
+        int l = firstVisibleValue;
+        for (; l < graphicsData.length; ++l) {
+            value = new Point((int)xyToPoint(graphicsData[l][0], 0).x, (int)xyToPoint(0, graphicsData[l][1]).y);
+            distance = (value.x - point.x) * (value.x - point.x) + (value.y - point.y) * (value.y - point.y);
+            if (distance < radius * radius) {
+                if (changingValue != -1) {
+                    if (distance < minDistance) {
+                        changingValue = l;
+                        minDistance = distance;
+                    }
+                }
+                else {
+                    minDistance = distance;
+                    changingValue = l;
+                }
+            }
+        }
+        return changingValue != -1;
+    }
+
+    public void setYForChangingValue(double yValue) throws ArrayIndexOutOfBoundsException {
+        if (graphicsData == null || graphicsData.length == 0) return;
+        graphicsData[changingValue][1] = yValue;
     }
 
     /*protected Point2D.Double shiftPoint(Point2D.Double src, double deltaX, double deltaY) {
