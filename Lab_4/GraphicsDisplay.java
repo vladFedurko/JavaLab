@@ -2,15 +2,12 @@ package Lab_4;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Paint;
-import java.awt.Stroke;
+import java.awt.*;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
@@ -23,6 +20,26 @@ public class GraphicsDisplay extends JPanel {
     private boolean showMarkers = true;
     private boolean rotateGraphic = false;
     private boolean showGrid = true;
+    private boolean scaled = false;
+
+    public void setDrawRect(boolean drawRect) {
+        this.drawRect = drawRect;
+    }
+
+    private boolean drawRect = false;
+
+    public void setZoom(MouseClickEvents.ZoomRect zoom) {
+        this.zoom = zoom;
+    }
+
+    public boolean isRotateGraphic() {
+        return rotateGraphic;
+    }
+
+    private MouseClickEvents.ZoomRect zoom;
+    private int changingValue = -1;
+
+    private int firstVisibleValue = 0;
 
     private double minX;
     private double maxX;
@@ -30,29 +47,53 @@ public class GraphicsDisplay extends JPanel {
     private double maxY;
 
     private double scale;
+    private double scaleX;
+    private double scaleY;
 
     private BasicStroke graphicsStroke;
+
     private BasicStroke axisStroke;
     private BasicStroke markerStroke;
     private BasicStroke gridStroke;
+    private BasicStroke zoomRectStroke;
+    private BasicStroke highlightingStroke;
+
+    private DecimalFormat formatter = (DecimalFormat) NumberFormat.getInstance();
 
     private Font axisFont;
+    private Font highlightingFont;
 
     public GraphicsDisplay() {
+        MouseClickEvents a = new MouseClickEvents(this);
+        addMouseListener(a);
+        addMouseMotionListener(a);
         setBackground(Color.WHITE);
         graphicsStroke = new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10.0f, new float[] {9, 3, 3, 3, 6, 3, 3, 3}, 0.0f);
         axisStroke = new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
         markerStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
         gridStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
         axisFont = new Font("Serif", Font.BOLD, 36);
-    }
+        zoomRectStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {10, 10}, 0.0f);
+        highlightingStroke = new BasicStroke(3.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, null, 0.0f);
+        highlightingFont = new Font("Serif", Font.PLAIN, 8);
 
+        formatter.setMaximumFractionDigits(10);
+        formatter.setGroupingUsed(false);
+        formatter.setMaximumIntegerDigits(5);
+        DecimalFormatSymbols dottedDouble = formatter.getDecimalFormatSymbols();
+        dottedDouble.setDecimalSeparator('.');
+        formatter.setDecimalFormatSymbols(dottedDouble);
+    }
 
     public void showGraphics(Double[][] graphicsData) {
         this.graphicsData = graphicsData;
+        scaled = false;
         repaint();
     }
 
+    public Double[][] getGraphicsData() {
+        return graphicsData;
+    }
 
     public void setShowAxis(boolean showAxis) {
         this.showAxis = showAxis;
@@ -81,21 +122,20 @@ public class GraphicsDisplay extends JPanel {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (graphicsData == null || graphicsData.length == 0) return;
-        minX = graphicsData[0][0];
-        maxX = graphicsData[graphicsData.length - 1][0];
-        minY = graphicsData[0][1];
-        maxY = minY;
-        for (int i = 1; i < graphicsData.length; ++i) {
-            if (graphicsData[i][1] < minY) {
-                minY = graphicsData[i][1];
-            }
-            if (graphicsData[i][1] > maxY) {
-                maxY = graphicsData[i][1];
+        if(!scaled) {
+            minX = graphicsData[0][0];
+            maxX = graphicsData[graphicsData.length - 1][0];
+            minY = graphicsData[0][1];
+            maxY = minY;
+            for (int i = 1; i < graphicsData.length; ++i) {
+                if (graphicsData[i][1] < minY) {
+                    minY = graphicsData[i][1];
+                }
+                if (graphicsData[i][1] > maxY) {
+                    maxY = graphicsData[i][1];
+                }
             }
         }
-
-        double scaleX;
-        double scaleY;
 
         if (rotateGraphic) {
             scaleY = getSize().getWidth() / (maxY - minY);
@@ -106,35 +146,53 @@ public class GraphicsDisplay extends JPanel {
             scaleY = getSize().getHeight() / (maxY - minY);
         }
 
-        scale = Math.min(scaleX, scaleY);
+        if(!scaled) {
+            scale = Math.min(scaleX, scaleY);
 
-        if (scale == scaleX) {
-            if (rotateGraphic) {
-                double yIncrement = (getSize().getWidth() / scale - (maxY - minY)) / 2;
-                maxY += yIncrement;
-                minY -= yIncrement;
+            if (scale == scaleX) {
+                if (rotateGraphic) {
+                    double yIncrement = (getSize().getWidth() / scale - (maxY - minY)) / 2;
+                    maxY += yIncrement;
+                    minY -= yIncrement;
+                }
+                else
+                {
+                    double yIncrement = (getSize().getHeight() / scale - (maxY - minY)) / 2;
+                    maxY += yIncrement;
+                    minY -= yIncrement;
+                }
             }
-            else
-            {
-                double yIncrement = (getSize().getHeight() / scale - (maxY - minY)) / 2;
-                maxY += yIncrement;
-                minY -= yIncrement;
+
+            if (scale == scaleY) {
+                if (rotateGraphic) {
+                    double xIncrement = (getSize().getHeight() / scale - (maxX - minX)) / 2;
+                    maxX += xIncrement;
+                    minX -= xIncrement;
+                }
+                else
+                {
+                    double xIncrement = (getSize().getWidth() / scale - (maxX - minX)) / 2;
+                    maxX += xIncrement;
+                    minX -= xIncrement;
+                }
             }
         }
 
-        if (scale == scaleY) {
-            if (rotateGraphic) {
-                double xIncrement = (getSize().getHeight() / scale - (maxX - minX)) / 2;
-                maxX += xIncrement;
-                minX -= xIncrement;
-            }
-            else
+        int l = 0, r = graphicsData.length - 1;
+        while (l < r - 1)
+        {
+            int mid = (l + r) >> 1;
+            if(graphicsData[mid][0] > minX)
             {
-                double xIncrement = (getSize().getWidth() / scale - (maxX - minX)) / 2;
-                maxX += xIncrement;
-                minX -= xIncrement;
+                r = mid;
+            } else
+            {
+                l = mid;
             }
         }
+
+        firstVisibleValue = l;
+
         Graphics2D canvas = (Graphics2D) g;
         Stroke oldStroke = canvas.getStroke();
         Color oldColor = canvas.getColor();
@@ -156,6 +214,12 @@ public class GraphicsDisplay extends JPanel {
 
         if (showMarkers) paintMarkers(canvas);
 
+        if (drawRect) {
+            canvas.setStroke(zoomRectStroke);
+            canvas.setColor(Color.BLACK);
+            canvas.drawRect(zoom.x1, zoom.y1, zoom.x2 - zoom.x1, zoom.y2 - zoom.y1);
+        }
+
         canvas.setFont(oldFont);
         canvas.setPaint(oldPaint);
         canvas.setColor(oldColor);
@@ -169,60 +233,102 @@ public class GraphicsDisplay extends JPanel {
 
         GeneralPath graphics = new GeneralPath();
         {
-            Point2D.Double point = xyToPoint(graphicsData[0][0], graphicsData[0][1]);
-            graphics.moveTo(point.getX(), point.getY());
-            for (int i = 1; i < graphicsData.length; ++i) {
-                point = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
+            int l = firstVisibleValue;
+            int a = l == 0 ? l : l - 1;
+            double max = xyToPoint(0, maxY).getY();
+            double min = xyToPoint(0, minY).getY();
+            boolean flag = false;
+            Point2D.Double point;
+            Point2D.Double prevPoint = xyToPoint(graphicsData[a][0], graphicsData[a][1]);
+            graphics.moveTo(prevPoint.getX(), prevPoint.getY());
+            if (a == l) ++l;
+            for ( ; l  < graphicsData.length && graphicsData[l][0] < maxX; ++l) {
+                point = xyToPoint(graphicsData[l][0], graphicsData[l][1]);
+                if (!((prevPoint.getY() < max && point.getY() < max) || (prevPoint.getY() > min && point.getY() > min))) {
+                    graphics.lineTo(point.getX(), point.getY());
+                    flag = true;
+                } else
+                {
+                    graphics.moveTo(point.getX(), point.getY());
+                }
+                prevPoint = new Point2D.Double(point.getX(), point.getY());
+            }
+            if (l < graphicsData.length) {
+                point = xyToPoint(graphicsData[l][0], graphicsData[l][1]);
                 graphics.lineTo(point.getX(), point.getY());
             }
+            if(flag) canvas.draw(graphics);
         }
-        canvas.draw(graphics);
     }
 
 
     protected void paintMarkers(Graphics2D canvas) {
         canvas.setStroke(markerStroke);
 
-        double dx = 5D;
-        double dy = 3D;
+        int l = firstVisibleValue;
 
-        for (Double[] point : graphicsData) {
-            canvas.setColor(Color.RED);
+        for ( ; l  < graphicsData.length && graphicsData[l][0] < maxX; ++l) {
+            if (graphicsData[l][1] <= maxY && graphicsData[l][1] >= minY)
+                drawMarker(canvas, l);
+        }
+    }
 
-            double xCenter = xyToPoint(point[0], point[1]).getX();
-            double yCenter = xyToPoint(point[0], point[1]).getY();
+    protected void drawMarker(Graphics2D canvas, int i) {
+        int dx = 5;
+        int dy = 3;
 
-            GeneralPath marker = new GeneralPath();
+        canvas.setColor(Color.RED);
 
-            marker.moveTo(xCenter - dx, yCenter + dy);
-            marker.lineTo(xCenter - dx, yCenter - dy);
-            marker.moveTo(xCenter - dx, yCenter);
-            marker.lineTo(xCenter + dx, yCenter);
-            marker.moveTo(xCenter + dx, yCenter + dy);
-            marker.lineTo(xCenter + dx, yCenter - dy);
+        int xCenter = (int)xyToPoint(graphicsData[i][0], graphicsData[i][1]).getX();
+        int yCenter = (int)xyToPoint(graphicsData[i][0], graphicsData[i][1]).getY();
 
-            marker.moveTo(xCenter + dy, yCenter - dx);
-            marker.lineTo(xCenter - dy, yCenter - dx);
-            marker.moveTo(xCenter, yCenter - dx);
-            marker.lineTo(xCenter, yCenter + dx);
-            marker.moveTo(xCenter + dy, yCenter + dx);
-            marker.lineTo(xCenter - dy, yCenter + dx);
+        GeneralPath marker = new GeneralPath();
 
-            int a = point[1].intValue();
-            if (point[1] < 0)
+        marker.moveTo(xCenter - dx, yCenter + dy);
+        marker.lineTo(xCenter - dx, yCenter - dy);
+        marker.moveTo(xCenter - dx, yCenter);
+        marker.lineTo(xCenter + dx, yCenter);
+        marker.moveTo(xCenter + dx, yCenter + dy);
+        marker.lineTo(xCenter + dx, yCenter - dy);
+
+        marker.moveTo(xCenter + dy, yCenter - dx);
+        marker.lineTo(xCenter - dy, yCenter - dx);
+        marker.moveTo(xCenter, yCenter - dx);
+        marker.lineTo(xCenter, yCenter + dx);
+        marker.moveTo(xCenter + dy, yCenter + dx);
+        marker.lineTo(xCenter - dy, yCenter + dx);
+
+        if (i == changingValue) {
+            canvas.setColor(Color.BLUE);
+            Stroke oldStroke = canvas.getStroke();
+            canvas.setStroke(highlightingStroke);
+            canvas.draw(marker);
+            canvas.setStroke(oldStroke);
+
+
+            FontRenderContext context = canvas.getFontRenderContext();
+            canvas.setFont(highlightingFont);
+            String label = "X=" + formatter.format(graphicsData[i][0]) + ", Y=" + formatter.format(graphicsData[i][1]);
+            Rectangle2D bounds = axisFont.getStringBounds(label, context);
+            canvas.drawString(label, (float)(xyToPoint(graphicsData[i][0], 0).getX() + 8),
+                    (float)(xyToPoint(0, graphicsData[i][1]).getY()) - 5);
+        }
+        else {
+            int a = graphicsData[i][1].intValue();
+            if (graphicsData[i][1] < 0)
                 --a;
             a = Math.abs(a);
             while (a > 0) {
-                if(a % 2 != 0) {
+                if (a % 2 != 0) {
                     canvas.setColor(Color.BLACK);
                     break;
                 }
                 a /= 10;
             }
-
             canvas.draw(marker);
         }
     }
+
 
 
     protected void paintAxis(Graphics2D canvas) {
@@ -307,46 +413,159 @@ public class GraphicsDisplay extends JPanel {
 
         FontRenderContext context = canvas.getFontRenderContext();
 
-        for (Double x = delta; x < maxX; x += delta) {
-            canvas.draw(new Line2D.Double(xyToPoint(x, maxY), xyToPoint(x, minY)));
+        if (minX < 0 && maxX > 0) {
+            if (maxY > 0 && minY < 0) {
+                for (Double x = delta; x < maxX; x += delta) {
+                    paintLineForGridX(x, canvas);
 
-            Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
-            Point2D.Double labelPos = xyToPoint(x, 0);
-            canvas.drawString(x.toString(), (float) (labelPos.getX() - bounds.getWidth() / 2), (float) (labelPos.getY() + 13));
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, 0);
+                    canvas.drawString(formatter.format(x), (float) labelPos.getX() - formatter.format(x).length() * 6 - 2,
+                            (float) (labelPos.getY() + bounds.getMaxY() + 2));
+                }
+
+                for (Double x = -delta; x > minX; x -= delta) {
+                    paintLineForGridX(x, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, 0);
+                    canvas.drawString(formatter.format(x), (float) labelPos.getX() - formatter.format(x).length() * 6,
+                            (float) (labelPos.getY() + bounds.getMaxY() + 2));
+                }
+            }
+            else {
+                for (Double x = delta; x < maxX; x += delta) {
+                    paintLineForGridX(x, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, minY);
+                    canvas.drawString(formatter.format(x), (float) (labelPos.getX()) + 1, (float) labelPos.getY() - 5);
+                }
+
+                for (Double x = -delta; x > minX; x -= delta) {
+                    paintLineForGridX(x, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, minY);
+                    canvas.drawString(formatter.format(x), (float) (labelPos.getX()) + 1, (float) labelPos.getY() - 5);
+                }
+            }
+        } else
+        {
+            if (maxY > 0 && minY < 0) {
+                for (Double x = (int)(minX / delta) * delta; x < maxX; x += delta) {
+                    paintLineForGridX(x, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, 0);
+                    canvas.drawString(formatter.format(x), (float) labelPos.getX() - formatter.format(x).length() * 6,
+                            (float) (labelPos.getY() + bounds.getMaxY() + 2));
+                }
+            }
+            else {
+                for (Double x = (int)(minX / delta) * delta; x < maxX; x += delta) {
+                    paintLineForGridX(x, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(x, minY);
+                    canvas.drawString(formatter.format(x), (float) (labelPos.getX()) + 1, (float) labelPos.getY() - 5);
+                }
+            }
         }
 
-        for (Double x = -delta; x > minX; x -= delta) {
-            canvas.draw(new Line2D.Double(xyToPoint(x, maxY), xyToPoint(x, minY)));
+        if (minY < 0 && maxY > 0) {
+            if (maxX > 0 && minX < 0) {
+                for (Double y = delta; y < maxY; y += delta) {
+                    paintLineForGridY(y, canvas);
 
-            Rectangle2D bounds = axisFont.getStringBounds(x.toString(), context);
-            Point2D.Double labelPos = xyToPoint(x, 0);
-            canvas.drawString(x.toString(), (float) (labelPos.getX() - bounds.getWidth() / 2), (float) labelPos.getY() + 13);
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(0, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() - formatter.format(y).length() * 6 - 3),
+                            (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+
+                for (Double y = -delta; y > minY; y -= delta) {
+                    paintLineForGridY(y, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(0, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() - formatter.format(y).length() * 6 - 3),
+                            (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+            }
+            else {
+                for (Double y = delta; y < maxY; y += delta) {
+                    paintLineForGridY(y, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(minX, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() + 2), (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+
+                for (Double y = -delta; y > minY; y -= delta) {
+                    paintLineForGridY(y, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(minX, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() + 2), (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+            }
+        }
+        else
+        {
+            if (maxX > 0 && minX < 0) {
+                for (Double y = (int)(minY / delta) * delta; y < maxY; y += delta) {
+                    paintLineForGridY(y, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(0, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() - formatter.format(y).length() * 6 - 3),
+                            (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+            }
+            else {
+                for (Double y = (int) (minY / delta) * delta; y < maxY; y += delta) {
+                    paintLineForGridY(y, canvas);
+
+                    canvas.setColor(Color.BLACK);
+                    Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
+                    Point2D.Double labelPos = xyToPoint(minX, y);
+                    canvas.drawString(formatter.format(y), (float) (labelPos.getX() + 2), (float) (labelPos.getY() + bounds.getMaxY()) + 2);
+                }
+            }
         }
 
-        for (Double y = delta; y < maxY; y += delta) {
-            canvas.draw(new Line2D.Double(xyToPoint(maxX, y), xyToPoint(minX, y)));
-
-            Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
-            Point2D.Double labelPos = xyToPoint(0, y);
-            canvas.drawString(y.toString(), (float) (labelPos.getX() - bounds.getWidth() / 2), (float) labelPos.getY() + 13);
+        if(maxX > 0 && maxY > 0 && minX < 0 && minY < 0) {
+            Rectangle2D bounds = axisFont.getStringBounds("0", context);
+            Point2D.Double labelPos = xyToPoint(0, 0);
+            canvas.drawString("0", (float) (labelPos.getX() - 11), (float) (labelPos.getY() + bounds.getMaxY()) + 2);
         }
 
-        for (Double y = -delta; y > minY; y -= delta) {
-            canvas.draw(new Line2D.Double(xyToPoint(maxX, y), xyToPoint(minX, y)));
-
-            Rectangle2D bounds = axisFont.getStringBounds(y.toString(), context);
-            Point2D.Double labelPos = xyToPoint(0, y);
-            canvas.drawString(y.toString(), (float) (labelPos.getX() - bounds.getWidth() / 2), (float) labelPos.getY() + 13);
-        }
-
-        Rectangle2D bounds = axisFont.getStringBounds("0.0", context);
-        Point2D.Double labelPos = xyToPoint(0, 0);
-        canvas.drawString("0.0", (float) (labelPos.getX() - bounds.getWidth() / 2), (float) labelPos.getY() + 13);
 
         if (showAxis)
             paintMarksOnAxis(g, mDelta);
     }
 
+    protected void paintLineForGridX (double x, Graphics2D canvas) {
+        canvas.setColor(Color.GRAY);
+        canvas.draw(new Line2D.Double(xyToPoint(x, maxY), xyToPoint(x, minY)));
+    }
+
+    protected void paintLineForGridY (double y, Graphics2D canvas) {
+        canvas.setColor(Color.GRAY);
+        canvas.draw(new Line2D.Double(xyToPoint(maxX, y), xyToPoint(minX, y)));
+    }
 
     protected void paintMarksOnAxis(@NotNull Graphics2D canvas, double mDelta) {
 
@@ -356,84 +575,170 @@ public class GraphicsDisplay extends JPanel {
         int mLength = 2;
         int bLength = 3;
 
-        for (double x = 0; x < maxX; x += mDelta) {
-            for (int i = 0; i < 4; ++i) {
+        if (maxY > 0 && minY < 0)
+        {
+
+            for (double x = 0; x < maxX; x += mDelta) {
+                for (int i = 0; i < 4; ++i) {
+                    x += mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
+                            xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                }
                 x += mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
-                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - bLength,
+                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + bLength));
+                for (int i = 0; i < 4; ++i) {
+                    x += mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
+                            xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                }
             }
-            x += mDelta;
-            canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - bLength,
-                    xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + bLength));
-            for (int i = 0; i < 4; ++i) {
-                x += mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
-                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
-            }
-        }
 
-        for (double x = 0; x > minX; x -= mDelta) {
-            for (int i = 0; i < 4; ++i)
-            {
+            for (double x = 0; x > minX; x -= mDelta) {
+                for (int i = 0; i < 4; ++i)
+                {
+                    x -= mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
+                            xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                }
                 x -= mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
-                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - bLength,
+                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + bLength));
+                for (int i = 0; i < 4; ++i)
+                {
+                    x -= mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
+                            xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
+                }
             }
-            x -= mDelta;
-            canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - bLength,
-                    xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + bLength));
-            for (int i = 0; i < 4; ++i)
-            {
-                x -= mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() - mLength,
-                        xyToPoint(x, 0).getX(), xyToPoint(x, 0).getY() + mLength));
-            }
+
         }
 
-        for (double y = 0; y < maxY; y += mDelta) {
-            for (int i = 0; i < 4; ++i)
-            {
+        if (maxX > 0 && minX < 0)
+        {
+            for (double y = 0; y < maxY; y += mDelta) {
+                for (int i = 0; i < 4; ++i)
+                {
+                    y += mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
+                            xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                }
                 y += mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
-                        xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - bLength, xyToPoint(0, y).getY(),
+                        xyToPoint(0, y).getX() + bLength, xyToPoint(0, y).getY()));
+                for (int i = 0; i < 4; ++i)
+                {
+                    y += mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
+                            xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                }
             }
-            y += mDelta;
-            canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - bLength, xyToPoint(0, y).getY(),
-                    xyToPoint(0, y).getX() + bLength, xyToPoint(0, y).getY()));
-            for (int i = 0; i < 4; ++i)
-            {
-                y += mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
-                        xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
-            }
-        }
 
-        for (double y = 0; y > minY; y -= mDelta) {
-            for (int i = 0; i < 4; ++i)
-            {
+            for (double y = 0; y > minY; y -= mDelta) {
+                for (int i = 0; i < 4; ++i)
+                {
+                    y -= mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
+                            xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                }
                 y -= mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
-                        xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
-            }
-            y -= mDelta;
-            canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - bLength, xyToPoint(0, y).getY(),
-                    xyToPoint(0, y).getX() + bLength, xyToPoint(0, y).getY()));
-            for (int i = 0; i < 4; ++i)
-            {
-                y -= mDelta;
-                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
-                        xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - bLength, xyToPoint(0, y).getY(),
+                        xyToPoint(0, y).getX() + bLength, xyToPoint(0, y).getY()));
+                for (int i = 0; i < 4; ++i)
+                {
+                    y -= mDelta;
+                    canvas.draw(new Line2D.Double(xyToPoint(0, y).getX() - mLength, xyToPoint(0, y).getY(),
+                            xyToPoint(0, y).getX() + mLength, xyToPoint(0, y).getY()));
+                }
             }
         }
     }
-
 
     protected Point2D.Double xyToPoint(double x, double y) {
         double deltaX = x - minX;
         double deltaY = maxY - y;
+        if(scaled)
+        {
+            return new Point2D.Double(deltaX * scaleX, deltaY * scaleY);
+        }
         return new Point2D.Double(deltaX * scale, deltaY * scale);
     }
 
+    protected Point2D.Double PointToxy(Point src) {
+        if(scaled)
+        {
+            return new Point2D.Double(src.x / scaleX + minX,maxY - src.y / scaleY);
+        }
+        return new Point2D.Double(src.x / scale + minX, maxY - src.y / scale);
+    }
+
+    public void setMaxY(double maxY) {
+        this.maxY = maxY;
+    }
+
+    public void setMaxX(double maxX) {
+        this.maxX = maxX;
+    }
+
+    public void setMinY(double minY) {
+        this.minY = minY;
+    }
+
+    public void setMinX(double minX) {
+        this.minX = minX;
+    }
+
+    public double getMinX() {
+        return minX;
+    }
+
+    public double getMaxX() {
+        return maxX;
+    }
+
+    public double getMinY() {
+        return minY;
+    }
+
+    public double getMaxY() {
+        return maxY;
+    }
+
+    public void setScaled(boolean scaled) {
+        this.scaled = scaled;
+    }
+
+    public boolean highlightThePoint (Point point) {
+        if (graphicsData == null || graphicsData.length == 0) return false;
+        int radius = 7;
+        int distance;
+        int minDistance = Integer.MAX_VALUE;
+        changingValue = -1;
+        Point value;
+        int l = firstVisibleValue;
+        for (; l < graphicsData.length; ++l) {
+            value = new Point((int)xyToPoint(graphicsData[l][0], 0).x, (int)xyToPoint(0, graphicsData[l][1]).y);
+            distance = (value.x - point.x) * (value.x - point.x) + (value.y - point.y) * (value.y - point.y);
+            if (distance < radius * radius) {
+                if (changingValue != -1) {
+                    if (distance < minDistance) {
+                        changingValue = l;
+                        minDistance = distance;
+                    }
+                }
+                else {
+                    minDistance = distance;
+                    changingValue = l;
+                }
+            }
+        }
+        return changingValue != -1;
+    }
+
+    public void setYForChangingValue(double yValue) throws ArrayIndexOutOfBoundsException {
+        if (graphicsData == null || graphicsData.length == 0) return;
+        graphicsData[changingValue][1] = yValue;
+    }
 
     /*protected Point2D.Double shiftPoint(Point2D.Double src, double deltaX, double deltaY) {
         Point2D.Double dest = new Point2D.Double();
