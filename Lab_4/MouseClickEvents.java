@@ -5,6 +5,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.Stack;
+import java.awt.Cursor;
 
 
 public class MouseClickEvents extends MouseAdapter {
@@ -54,11 +55,15 @@ public class MouseClickEvents extends MouseAdapter {
                 startPressedMButt1 = mouseEvent.getPoint();
                 component.setDrawRect(true);
             }
+            else {
+                component.setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
+            }
         }
     }
 
     @Override
     public void mouseReleased(MouseEvent mouseEvent) {
+        component.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         if (mouseEvent.getButton() == MouseEvent.BUTTON1) {
             if (!valueChanging) {
                 pressedButton1 = false;
@@ -130,6 +135,7 @@ public class MouseClickEvents extends MouseAdapter {
         if (pressedButton1)
         {
             if (!valueChanging) {
+                component.setCursor(Cursor.getPredefinedCursor(CursorView.getCursorType(startPressedMButt1, mouseEvent.getPoint())));
                 ZoomRect z;
                 if (component.isRotateGraphic()) {
                     Point a = (Point) startPressedMButt1.clone();  // Вот из-за этого у меня ничего не получалось
@@ -210,5 +216,45 @@ public class MouseClickEvents extends MouseAdapter {
             z.y1 = end.y;
         }
         return z;
+    }
+}
+
+class CursorView {
+
+    protected static int getCursorType (Point startPoint, Point currentPoint) {
+        double height = startPoint.y - currentPoint.y;
+        double width = startPoint.x - currentPoint.x;
+        if (width == 0 && height == 0) {
+            return Cursor.DEFAULT_CURSOR;
+        }
+        double angle = Math.acos(width / Math.sqrt(width * width + height * height));
+        int type;
+        double piDivideEight = Math.PI / 8;
+        if (angle < piDivideEight) {
+            type = Cursor.E_RESIZE_CURSOR;
+        }
+        else if (angle < 3 * piDivideEight) {
+            if (height > 0)
+                type = Cursor.NW_RESIZE_CURSOR;
+            else
+                type = Cursor.NE_RESIZE_CURSOR;
+        }
+        else if (angle < 5 * piDivideEight) {
+            type = Cursor.N_RESIZE_CURSOR;
+        }
+        else if (angle < 7 * piDivideEight) {
+            if (height > 0)
+                type = Cursor.NE_RESIZE_CURSOR;
+            else
+                type = Cursor.NW_RESIZE_CURSOR;
+        }
+        else {
+            type = Cursor.W_RESIZE_CURSOR;
+        }
+        return type;
+    }
+
+    protected static int getDefaultType () {
+        return Cursor.DEFAULT_CURSOR;
     }
 }
