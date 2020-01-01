@@ -1,6 +1,7 @@
 package Lab_6;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class Main6 extends JFrame {
 
@@ -19,6 +20,9 @@ public class Main6 extends JFrame {
     public Main6() {
         super("Happy Balls");
         this.setSize(WIDTH, HEIGHT);
+        Toolkit kit = this.getToolkit();
+        this.setLocation((kit.getScreenSize().width - WIDTH) / 2,
+                (kit.getScreenSize().height - HEIGHT) / 2);
         this.createField();
         this.createMenu();
     }

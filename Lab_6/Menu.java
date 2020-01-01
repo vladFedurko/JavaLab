@@ -74,7 +74,7 @@ public class Menu extends JMenuBar {
         stopItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                field.stop();
+                field.pause();
                 stopItem.setEnabled(false);
                 resumeItem.setEnabled(true);
             }
