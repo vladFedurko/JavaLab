@@ -17,7 +17,7 @@ public class Main6 extends JFrame {
     }
 
     public Main6() {
-        super("Happy balls");
+        super("Happy Balls");
         this.setSize(WIDTH, HEIGHT);
         this.createField();
         this.createMenu();
