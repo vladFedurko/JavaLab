@@ -26,7 +26,7 @@ public class Menu extends JMenuBar {
     }
 
     private void addControllerMenuItems(JMenu menu) {
-        JMenuItem resumeItem = new JMenuItem("Продолжить");
+        JMenuItem resumeItem = new JMenuItem("Возобновить");
         JMenuItem stopItem = new JMenuItem("Приостановить");
         this.addListenerForResumeMenuItem(stopItem, resumeItem);
         this.addListenerForStopMenuItem(stopItem, resumeItem);
