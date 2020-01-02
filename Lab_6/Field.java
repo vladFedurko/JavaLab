@@ -30,17 +30,21 @@ public class Field extends JPanel {
         }
     }
 
-    public void pause() {
+    public synchronized void pause() {
         paused = true;
+        repaintTimer.stop();
     }
 
-    public void resume() {
+    public synchronized void resume() {
         paused = false;
+        repaintTimer.start();
         notifyAll();
     }
 
     public void addBall() {
-        //TODO
+        BouncingBall ball = new BouncingBall(this);
+        balls.add(ball);
+        repaint();
     }
 
     public void deleteBall() throws RuntimeException {
@@ -49,6 +53,9 @@ public class Field extends JPanel {
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-
+        Graphics2D canvas = (Graphics2D)(g);
+        for(BouncingBall ball : balls) {
+            ball.paint(canvas);
+        }
     }
 }

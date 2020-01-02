@@ -25,6 +25,9 @@ public class Main6 extends JFrame {
                 (kit.getScreenSize().height - HEIGHT) / 2);
         this.createField();
         this.createMenu();
+        this.setMinimumSize(new Dimension(
+                this.getJMenuBar().getWidth(),
+                this.getJMenuBar().getHeight() + 2 * BouncingBall.MAX_RADIUS + 80));
     }
 
     private void createMenu() {

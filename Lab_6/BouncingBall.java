@@ -7,11 +7,11 @@ public class BouncingBall implements Runnable {
 
     private Color color;
     private int radius;
-    private int x;
-    private int y;
+    private double x;
+    private double y;
 
-    private static final int MAX_RADIUS = 30;
-    private static final int MIN_RADIUS = 5;
+    public static final int MAX_RADIUS = 30;
+    public static final int MIN_RADIUS = 5;
 
     private int speed;
     private double speedX;
@@ -19,7 +19,8 @@ public class BouncingBall implements Runnable {
 
     private Field field;
 
-    public BouncingBall() {
+    public BouncingBall(Field field) {
+        this.field = field;
         radius = (int)(Math.random() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS);
         speed = (int)(5D * MAX_RADIUS / radius);
         double angle = Math.random() * 2 * Math.PI;
@@ -38,14 +39,6 @@ public class BouncingBall implements Runnable {
         try {
             while (true) {
                 field.canMove(this);
-                if (x + speedX <= radius) {
-                    speedX = -speedX;
-                    x = radius;
-                } else
-                if (x + speedX >= field.getWidth() - radius) {
-                    speedX = -speedX;
-                    x = field.getWidth() - radius;
-                } else
                 if (y + speedY <= radius) {
                     speedY = -speedY;
                     y = radius;
@@ -54,10 +47,20 @@ public class BouncingBall implements Runnable {
                     speedY = -speedY;
                     y = field.getHeight() - radius;
                 } else {
-                    x += speedX;
                     y += speedY;
                 }
-                Thread.sleep(10);
+                if (x + speedX <= radius) {
+                    speedX = -speedX;
+                    x = radius;
+                } else
+                if (x + speedX >= field.getWidth() - radius) {
+                    speedX = -speedX;
+                    x = field.getWidth() - radius;
+                } else
+                {
+                    x += speedX;
+                }
+                Thread.sleep(15);
             }
         } catch (InterruptedException ignore) {
 
