@@ -1,6 +1,8 @@
 package Lab_6;
 
 import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -26,12 +28,19 @@ public class Menu extends JMenuBar {
     }
 
     private void addControllerMenuItems(JMenu menu) {
-        JMenuItem resumeItem = new JMenuItem("Возобновить");
-        JMenuItem stopItem = new JMenuItem("Приостановить");
-        this.addListenerForResumeMenuItem(stopItem, resumeItem);
-        this.addListenerForStopMenuItem(stopItem, resumeItem);
+        JMenuItem resumeItem = this.createResumeMenuItem();
+        JMenuItem stopItem = this.createStopMenuItem();
         menu.add(resumeItem);
         menu.add(stopItem);
+        menu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent menuEvent) {
+                resumeItem.setEnabled(field.isPaused());
+                stopItem.setEnabled(!field.isPaused());
+            }
+            public void menuDeselected(MenuEvent ignore) { }
+            public void menuCanceled(MenuEvent ignore) {}
+        });
     }
 
     private JMenu createBallsMenu() {
@@ -45,6 +54,14 @@ public class Menu extends JMenuBar {
         JMenuItem deleteBallItem = this.createDeleteBallMenuItem();
         menu.add(addBallItem);
         menu.add(deleteBallItem);
+        menu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent menuEvent) {
+                deleteBallItem.setEnabled(field.hasFocus());
+            }
+            public void menuDeselected(MenuEvent ignore) {}
+            public void menuCanceled(MenuEvent ignore) {}
+        });
     }
 
     private JMenuItem createDeleteBallMenuItem() {
@@ -70,27 +87,27 @@ public class Menu extends JMenuBar {
         return item;
     }
 
-    private void addListenerForStopMenuItem(JMenuItem stopItem, JMenuItem resumeItem) {
+    private JMenuItem createStopMenuItem() {
+        JMenuItem stopItem = new JMenuItem("Приостановить");
         stopItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 field.pause();
-                stopItem.setEnabled(false);
-                resumeItem.setEnabled(true);
             }
         });
         stopItem.setEnabled(false);
+        return stopItem;
     }
 
-    private void addListenerForResumeMenuItem(JMenuItem stopItem, JMenuItem resumeItem) {
+    private JMenuItem createResumeMenuItem() {
+        JMenuItem resumeItem = new JMenuItem("Возобновить");
         resumeItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 field.resume();
-                stopItem.setEnabled(true);
-                resumeItem.setEnabled(false);
             }
         });
         resumeItem.setEnabled(true);
+        return resumeItem;
     }
 }
