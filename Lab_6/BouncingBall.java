@@ -7,12 +7,14 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 
-public class BouncingBall implements Runnable {
+public class BouncingBall implements Runnable, Component {
 
     private Color color;
+
     private int radius;
     private double x;
     private double y;
+    private boolean stopped;
 
     public static final int MAX_RADIUS = 30;
     public static final int MIN_RADIUS = 5;
@@ -43,6 +45,7 @@ public class BouncingBall implements Runnable {
         try {
             while (true) {
                 field.canMove(this);
+                this.checkStopped(this);
                 if(field.hasObstacle() && this.checkForObstacleHitting()) {
 
                 } else {
@@ -65,11 +68,23 @@ public class BouncingBall implements Runnable {
                         x += speedX;
                     }
                 }
+                this.correctCoordinates();
                 Thread.sleep(10);
             }
         } catch (InterruptedException ignore) {
 
         }
+    }
+
+    private synchronized void checkStopped(BouncingBall bouncingBall) throws InterruptedException {
+        if(stopped)
+            wait();
+    }
+
+    public boolean isInside(Point point) {
+        if(sqr(point.getX() - (int)x) + sqr(point.getY() - (int)y) <= sqr(radius))
+            return true;
+        return false;
     }
 
     public void paint(@NotNull Graphics2D canvas) {
@@ -88,6 +103,15 @@ public class BouncingBall implements Runnable {
         }
         if(y > (field.getSize().getHeight() - radius)) {
             y = field.getSize().getHeight() - radius;
+        }
+        if(x < 0) {
+            x = radius;
+        }
+        if(y < 0) {
+            y = radius;
+        }
+        if(field.hasObstacle()) {
+            //TODO
         }
     }
 
@@ -183,5 +207,30 @@ public class BouncingBall implements Runnable {
     @Contract(pure = true)
     private double sqr(double x) {
         return x * x;
+    }
+
+    public int getX() {
+        return (int)x;
+    }
+
+    public int getY() {
+        return (int)y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void stop() {
+        stopped = true;
+    }
+
+    public synchronized void resume(BouncingBall ball) {
+        stopped = false;
+        notify();
     }
 }

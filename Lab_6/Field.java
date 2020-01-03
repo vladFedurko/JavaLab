@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.util.ArrayList;
 
 public class Field extends JPanel {
@@ -27,6 +28,9 @@ public class Field extends JPanel {
 
     public Field() {
         super();
+        FieldMouseListener mouseListener = new FieldMouseListener(this);
+        this.addMouseListener(mouseListener);
+        this.addMouseMotionListener(mouseListener);
         balls = new ArrayList<>(15);
         this.setBackground(Color.WHITE);
     }
@@ -40,6 +44,7 @@ public class Field extends JPanel {
     public synchronized void pause() {
         paused = true;
         repaintTimer.stop();
+        repaint();
     }
 
     public synchronized void resume() {
@@ -54,15 +59,46 @@ public class Field extends JPanel {
         repaint();
     }
 
-    public void deleteBall() throws RuntimeException {
+    public void deleteComponent() throws RuntimeException {
         if(focusIndex == NO_FOCUS_INDEX)
             throw new RuntimeException("Nothing to delete");
-        balls.remove(focusIndex);
+        if(focusIndex == OBSTACLE_FOCUS_INDEX) {
+            obstacle = null;
+        }
+        else {
+            balls.remove(focusIndex);
+        }
+        focusIndex = NO_FOCUS_INDEX;
+        repaint();
     }
 
     public void addObstacle() {
         obstacle = new Obstacle(this);
         repaint();
+    }
+
+    public void toFocus(Point pos) {
+        for(int i = balls.size() - 1; i >= 0; --i) {
+            if(balls.get(i).isInside(pos)) {
+                focusIndex = i;
+                return;
+            }
+        }
+        if(this.hasObstacle() && obstacle.isInside(pos))
+            focusIndex = OBSTACLE_FOCUS_INDEX;
+        else
+            focusIndex = NO_FOCUS_INDEX;
+    }
+
+    public Component getComponentFromInnerPoint(Point pos) {
+        for(int i = balls.size() - 1; i >= 0; --i) {
+            if(balls.get(i).isInside(pos)) {
+                return balls.get(i);
+            }
+        }
+        if(this.hasObstacle() && obstacle.isInside(pos))
+            return obstacle;
+        return null;
     }
 
     public boolean hasObstacle() {

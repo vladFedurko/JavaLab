@@ -90,7 +90,7 @@ public class Menu extends JMenuBar {
         item.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                field.deleteBall();
+                field.deleteComponent();
             }
         });
         return item;

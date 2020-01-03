@@ -5,23 +5,23 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 
-public class Obstacle {
+public class Obstacle implements Component{
 
     private int x;
     private int y;
     private int sizeX;
     private int sizeY;
 
-    public static final int MAX_SIZE = 30;
-    public static final int MIN_SIZE = 5;
+    public static final int MAX_SIZE = 100;
+    public static final int MIN_SIZE = 30;
 
     private Color color;
     private Field field;
 
     public Obstacle(@NotNull Field field) {
         this.field = field;
-        sizeX = 30;//(int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
-        sizeY = 30;//(int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
+        sizeX = (int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
+        sizeY = (int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
         color = new Color((float)Math.random(), (float)Math.random(), (float)Math.random());
         x = (int)(Math.random() * (field.getSize().getWidth() - sizeX));
         y = (int)(Math.random() * (field.getSize().getHeight() - sizeY));
@@ -43,6 +43,18 @@ public class Obstacle {
         if(y > (field.getSize().getHeight() - sizeY)) {
             y = (int)(field.getSize().getHeight() - sizeY);
         }
+        if(x < 0) {
+            x = 0;
+        }
+        if(y < 0) {
+            y = 0;
+        }
+    }
+
+    public boolean isInside(Point point) {
+        if(point.x >= x && point.y >= y && point.x <= this.getX2() && point.y <= this.getY2())
+            return true;
+        return false;
     }
 
     public int getX() {
