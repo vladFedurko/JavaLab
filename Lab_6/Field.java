@@ -19,7 +19,7 @@ public class Field extends JPanel {
 
     private int focusIndex = NO_FOCUS_INDEX;
 
-    private Timer repaintTimer = new Timer(20, new ActionListener() {
+    private Timer repaintTimer = new Timer(10, new ActionListener() {
         public void actionPerformed(ActionEvent ev) {
             repaint();
         }
@@ -60,6 +60,15 @@ public class Field extends JPanel {
         balls.remove(focusIndex);
     }
 
+    public void addObstacle() {
+        obstacle = new Obstacle(this);
+        repaint();
+    }
+
+    public boolean hasObstacle() {
+        return obstacle != null;
+    }
+
     public boolean hasFocus() {
         return focusIndex != NO_FOCUS_INDEX;
     }
@@ -70,9 +79,16 @@ public class Field extends JPanel {
         for(BouncingBall ball : balls) {
             ball.paint(canvas);
         }
+        if(this.hasObstacle()) {
+            obstacle.paint(canvas);
+        }
     }
 
     public boolean isPaused() {
         return paused;
+    }
+
+    public Obstacle getObstacle() {
+        return obstacle;
     }
 }

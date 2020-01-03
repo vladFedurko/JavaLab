@@ -1,6 +1,9 @@
 package Lab_6;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 
 public class Obstacle {
 
@@ -13,13 +16,33 @@ public class Obstacle {
     public static final int MIN_SIZE = 5;
 
     private Color color;
+    private Field field;
 
-    public Obstacle(Field field) {
-        sizeX = (int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
-        sizeY = (int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
+    public Obstacle(@NotNull Field field) {
+        this.field = field;
+        sizeX = 30;//(int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
+        sizeY = 30;//(int)(Math.random() * (MAX_SIZE - MIN_SIZE)) + MIN_SIZE;
         color = new Color((float)Math.random(), (float)Math.random(), (float)Math.random());
-        x = (int)(Math.random() * (field.getSize().getWidth() - sizeX) + sizeX / 2);
-        y = (int)(Math.random() * (field.getSize().getHeight() - sizeY) + sizeY / 2);
+        x = (int)(Math.random() * (field.getSize().getWidth() - sizeX));
+        y = (int)(Math.random() * (field.getSize().getHeight() - sizeY));
+    }
+
+    public void paint(@NotNull Graphics2D canvas) {
+        canvas.setColor(color);
+        canvas.setPaint(color);
+        this.correctCoordinates();
+        Rectangle2D.Double rect = new Rectangle2D.Double(x, y, sizeX, sizeY);
+        canvas.draw(rect);
+        canvas.fill(rect);
+    }
+
+    private void correctCoordinates() {
+        if(x > (field.getSize().getWidth() - sizeX)) {
+            x = (int)(field.getSize().getWidth() - sizeX);
+        }
+        if(y > (field.getSize().getHeight() - sizeY)) {
+            y = (int)(field.getSize().getHeight() - sizeY);
+        }
     }
 
     public int getX() {
@@ -60,5 +83,13 @@ public class Obstacle {
 
     public void setColor(Color color) {
         this.color = color;
+    }
+
+    public int getX2() {
+        return x + sizeX;
+    }
+
+    public int getY2() {
+        return y + sizeY;
     }
 }
