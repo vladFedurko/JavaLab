@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
 import java.util.ArrayList;
 
 public class Field extends JPanel {
@@ -15,14 +14,18 @@ public class Field extends JPanel {
 
     private boolean paused = true;
 
+    private StatusMenu statusMenu;
+
     public static final int NO_FOCUS_INDEX = -1;
     public static final int OBSTACLE_FOCUS_INDEX = -2;
 
     private int focusIndex = NO_FOCUS_INDEX;
 
-    private Timer repaintTimer = new Timer(10, new ActionListener() {
+    private Timer repaintTimer = new Timer(Main6.UPDATE_TIME, new ActionListener() {
         public void actionPerformed(ActionEvent ev) {
             repaint();
+            if(statusMenu != null)
+                statusMenu.update();
         }
     });
 
@@ -109,6 +112,14 @@ public class Field extends JPanel {
         return focusIndex != NO_FOCUS_INDEX;
     }
 
+    public Component getFocusedComponent() {
+        if(focusIndex == OBSTACLE_FOCUS_INDEX)
+            return obstacle;
+        if(focusIndex != NO_FOCUS_INDEX)
+            return balls.get(focusIndex);
+        return null;
+    }
+
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D canvas = (Graphics2D)(g);
@@ -126,5 +137,9 @@ public class Field extends JPanel {
 
     public Obstacle getObstacle() {
         return obstacle;
+    }
+
+    public void setStatusMenu(StatusMenu statusMenu) {
+        this.statusMenu = statusMenu;
     }
 }

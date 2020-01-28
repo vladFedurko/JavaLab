@@ -1,6 +1,5 @@
 package Lab_6;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -19,7 +18,8 @@ public class BouncingBall implements Runnable, Component {
     public static final int MAX_RADIUS = 30;
     public static final int MIN_RADIUS = 5;
 
-    private int speed;
+    private double speed;
+
     private double speedX;
     private double speedY;
 
@@ -69,7 +69,7 @@ public class BouncingBall implements Runnable, Component {
                     }
                 }
                 this.correctCoordinates();
-                Thread.sleep(10);
+                Thread.sleep(Main6.UPDATE_TIME);
             }
         } catch (InterruptedException ignore) {
 
@@ -111,7 +111,68 @@ public class BouncingBall implements Runnable, Component {
             y = radius;
         }
         if(field.hasObstacle()) {
-            //TODO
+            Obstacle obs = field.getObstacle();
+            this.correctCoordinatesForSides(obs);
+            Point2D.Double center = new Point2D.Double(x, y);
+            if(this.isInside(new Point(obs.getX(), obs.getY()))) {
+                this.correctCoordinatesForCorner(center,
+                        new Point2D.Double(obs.getX(), obs.getY()), obs);
+            } else
+            if(this.isInside(new Point(obs.getX(), obs.getY2()))){
+                this.correctCoordinatesForCorner(center,
+                        new Point2D.Double(obs.getX(), obs.getY2()), obs);
+            } else
+            if(this.isInside(new Point(obs.getX2(), obs.getY2()))){
+                this.correctCoordinatesForCorner(center,
+                        new Point2D.Double(obs.getX2(), obs.getY2()), obs);
+            } else
+            if(this.isInside(new Point(obs.getX2(), obs.getY()))){
+                this.correctCoordinatesForCorner(center,
+                        new Point2D.Double(obs.getX2(), obs.getY()), obs);
+            }
+        }
+    }
+
+    private void correctCoordinatesForSides(Obstacle obs) {
+        if(y > obs.getY() && y < obs.getY2()) {
+            if(x + radius > obs.getX() && x < obs.getX()) {
+                x = obs.getX() - radius;
+                if(speedX > 0)
+                    speedX = -speedX;
+            } else
+            if(x - radius < obs.getX2() && x > obs.getX2()) {
+                x = obs.getX2() + radius;
+                if(speedX < 0)
+                    speedX = -speedX;
+            } else
+            if(x > obs.getX() && x < obs.getX2()) {
+                //TODO
+            }
+        } else
+        if(x > obs.getX() && x < obs.getX2()) {
+            if(y + radius > obs.getY() && y < obs.getY()) {
+                y = obs.getY() - radius;
+                if(speedY > 0)
+                    speedY = -speedY;
+            } else
+            if(y - radius < obs.getY2() && y > obs.getY2()) {
+                y = obs.getY2() + radius;
+                if(speedY < 0)
+                    speedY = -speedY;
+            }
+        }
+    }
+
+    private void correctCoordinatesForCorner(Point2D.Double center, Point2D.Double corner, Obstacle obs) {
+        double relSpeedX = speedX - obs.getSpeedX();
+        double relSpeedY = speedY - obs.getSpeedY();
+        Double t = this.calculateTimeForCornerHitting(center, corner, relSpeedX, relSpeedY);
+        if(t != null && t < 0) {
+            System.out.println(t);
+            this.calculateAndApplySpeedForCornerHitting(center, corner, relSpeedX, relSpeedY, t);
+            speedX = speedX + obs.getSpeedX();
+            speedY = speedY + obs.getSpeedY();
+            this.normalizeSpeed();
         }
     }
 
@@ -126,29 +187,33 @@ public class BouncingBall implements Runnable, Component {
         boolean ans = false;
         if(x > obstacle.getX() && x < obstacle.getX2()) {
             if(y + radius <= obstacle.getY() && y + speedY + radius >= obstacle.getY()) {
-                speedY = -speedY;
-                y = 2 * (obstacle.getY() - radius) - y - speedY;
+                y = obstacle.getY() - radius;
+                if(speedY > 0)
+                    speedY = -speedY;
                 x += speedX;
                 ans = true;
             } else
             if(y - radius >= obstacle.getY2()
                     && y - radius + speedY <= obstacle.getY2()) {
-                speedY = -speedY;
-                y = 2 * (obstacle.getY2() + radius) - y - speedY;
+                y = obstacle.getY2() + radius;
+                if(speedY < 0)
+                    speedY = -speedY;
                 x += speedX;
                 ans = true;
             }
         } else
         if(y > obstacle.getY() && y < obstacle.getY2()) {
             if (x + radius <= obstacle.getX() && x + speedX + radius >= obstacle.getX()) {
-                speedX = -speedX;
-                x = 2 * (obstacle.getX() - radius) - x - speedX;
+                if(speedX > 0)
+                    speedX = -speedX;
+                x = obstacle.getX() - radius;
                 y += speedY;
                 ans = true;
             } else if (x - radius >= obstacle.getX2()
                     && x - radius + speedX <= obstacle.getX2()) {
-                speedX = -speedX;
-                x = 2 * (obstacle.getX2() + radius) - x - speedX;
+                if(speedX < 0)
+                    speedX = -speedX;
+                x = obstacle.getX2() + radius;
                 y += speedY;
                 ans = true;
             }
@@ -181,30 +246,45 @@ public class BouncingBall implements Runnable, Component {
     }
 
     private boolean calculateSpeedForCorner(Point2D.Double center, Point2D.Double corner) {
-        boolean ans = false;
+        Double t = this.calculateTimeForCornerHitting(center, corner, speedX, speedY);
+        if(t != null) {
+            if (t <= 1 && t >= 0) {
+                calculateAndApplySpeedForCornerHitting(center, corner, speedX, speedY, t);
+                x += speedX * (1 - t);
+                y += speedY * (1 - t);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void calculateAndApplySpeedForCornerHitting(Point2D.Double center, Point2D.Double corner, double speedX, double speedY, double t) {
+        x += speedX * t;
+        y += speedY * t;
+        double distance = Math.sqrt(sqr(center.y - corner.y) + sqr(center.x - corner.x));
+        Point2D.Double n = new Point2D.Double((center.y - corner.y) / distance,
+                (corner.x - center.x) / distance);
+        double m = 2 * (speedX * n.x + speedY * n.y);
+        this.speedX = m * n.x - speedX;
+        this.speedY = m * n.y - speedY;
+    }
+
+    private Double calculateTimeForCornerHitting(Point2D.Double center, Point2D.Double corner, double speedX, double speedY) {
         double b = speedX * (center.x - corner.x) + speedY * (center.y - corner.y);
         double D = sqr(b) - sqr(speed) * (sqr(center.x) + sqr(center.y) + sqr(corner.x) + sqr(corner.y) - sqr(radius)
                 - 2 * center.x * corner.x - 2 * center.y * corner.y);
         if (D >= 0) {
-            double t = (-b - Math.sqrt(D)) / sqr(speed);
-            if (t <= 1 && t >= 0) {
-                x += speedX * t;
-                y += speedY * t;
-                double distance = Math.sqrt(sqr(center.y - corner.y) + sqr(center.x - corner.x));
-                Point2D.Double n = new Point2D.Double((center.y - corner.y) / distance,
-                        (corner.x - center.x) / distance);
-                double m = 2 * (speedX * n.x + speedY * n.y);
-                speedX = m * n.x - speedX;
-                speedY = m * n.y - speedY;
-                x += speed * (1 - t);
-                y += speed * (1 - t);
-                ans = true;
-            }
+            return (-b - Math.sqrt(D)) / sqr(speed);
         }
-        return ans;
+        return null;
     }
 
-    @Contract(pure = true)
+    private void normalizeSpeed() {
+        double sp = Math.sqrt(sqr(speedX) + sqr(speedY));
+        speedX *= speed / sp;
+        speedY *= speed / sp;
+    }
+
     private double sqr(double x) {
         return x * x;
     }
@@ -225,6 +305,20 @@ public class BouncingBall implements Runnable, Component {
         this.x = x;
     }
 
+    @Override
+    public void setXAndSpeedX(int x, long dt) {
+        speedX = Main6.UPDATE_TIME * (x - this.x) / dt;
+        speed = Math.sqrt(sqr(speedY) + sqr(speedX));
+        this.x = x;
+    }
+
+    @Override
+    public void setYAndSpeedY(int y, long dt) {
+        speedY = Main6.UPDATE_TIME * (y - this.y) / dt;
+        speed = Math.sqrt(sqr(speedY) + sqr(speedX));
+        this.y = y;
+    }
+
     public void stop() {
         stopped = true;
     }
@@ -232,5 +326,27 @@ public class BouncingBall implements Runnable, Component {
     public synchronized void resume(BouncingBall ball) {
         stopped = false;
         notify();
+    }
+
+    @Override
+    public double getSpeedX() {
+        return speedX;
+    }
+
+    @Override
+    public double getSpeedY() {
+        return speedY;
+    }
+
+    public String getName() {
+        return "BouncingBall";
+    }
+
+    public void setSpeedX(double speedX) {
+        this.speedX = speedX;
+    }
+
+    public void setSpeedY(double speedY) {
+        this.speedY = speedY;
     }
 }

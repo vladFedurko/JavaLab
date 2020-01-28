@@ -11,6 +11,8 @@ public class Obstacle implements Component{
     private int y;
     private int sizeX;
     private int sizeY;
+    private double speedX;
+    private double speedY;
 
     public static final int MAX_SIZE = 100;
     public static final int MIN_SIZE = 30;
@@ -65,12 +67,36 @@ public class Obstacle implements Component{
         this.x = x;
     }
 
+    @Override
+    public void setXAndSpeedX(int x, long dt) {
+        speedX = Main6.UPDATE_TIME * ((double)x - this.x) / dt;
+        this.x = x;
+    }
+
+    @Override
+    public void setYAndSpeedY(int y, long dt) {
+        speedY = Main6.UPDATE_TIME * ((double)y - this.y) / dt;
+        this.y = y;
+    }
+
     public int getY() {
         return y;
     }
 
+    public double getSpeedX() {
+        return speedX;
+    }
+
+    public double getSpeedY() {
+        return speedY;
+    }
+
     public void setY(int y) {
         this.y = y;
+    }
+
+    public String getName() {
+        return "Obstacle";
     }
 
     public int getSizeX() {
@@ -103,5 +129,10 @@ public class Obstacle implements Component{
 
     public int getY2() {
         return y + sizeY;
+    }
+
+    public void setZeroSpeed() {
+        speedX = 0;
+        speedY = 0;
     }
 }
