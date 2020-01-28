@@ -130,6 +130,32 @@ public class BouncingBall implements Runnable, Component {
                 this.correctCoordinatesForCorner(center,
                         new Point2D.Double(obs.getX2(), obs.getY()), obs);
             }
+            this.resolveCompressionBetweenObstacleAndWall(obs);
+        }
+    }
+
+    private void resolveCompressionBetweenObstacleAndWall(Obstacle obs) {
+        if(obs.getX() < 2 * radius && x - radius < 0) {
+            x = radius;
+            double d = Math.sqrt(sqr(radius) - sqr(x - obs.getX()));
+            y = speedY > 0 ? obs.getY2() + d : obs.getY() - d;
+        } else
+        if(obs.getY() < 2 * radius && y - radius < 0) {
+            y = radius;
+            double d = Math.sqrt(sqr(radius) - sqr(y - obs.getY()));
+            x = speedX > 0 ? obs.getX2() + d : obs.getX() - d;
+        } else
+        if(obs.getX2() > field.getSize().getWidth() - 2 * radius &&
+            x + radius > field.getSize().getWidth()) {
+            x = field.getSize().getWidth() - radius;
+            double d = Math.sqrt(sqr(radius) - sqr(x - obs.getX2()));
+            y = speedY > 0 ? obs.getY2() + d : obs.getY() - d;
+        } else
+        if(obs.getY2() > field.getSize().getHeight() - 2 * radius &&
+                y + radius > field.getSize().getHeight()) {
+            y = field.getSize().getHeight() - radius;
+            double d = Math.sqrt(sqr(radius) - sqr(y - obs.getY2()));
+            x = speedX > 0 ? obs.getX2() + d : obs.getX() - d;
         }
     }
 
@@ -168,7 +194,6 @@ public class BouncingBall implements Runnable, Component {
         double relSpeedY = speedY - obs.getSpeedY();
         Double t = this.calculateTimeForCornerHitting(center, corner, relSpeedX, relSpeedY);
         if(t != null && t < 0) {
-            System.out.println(t);
             this.calculateAndApplySpeedForCornerHitting(center, corner, relSpeedX, relSpeedY, t);
             speedX = speedX + obs.getSpeedX();
             speedY = speedY + obs.getSpeedY();
@@ -281,6 +306,7 @@ public class BouncingBall implements Runnable, Component {
 
     private void normalizeSpeed() {
         double sp = Math.sqrt(sqr(speedX) + sqr(speedY));
+
         speedX *= speed / sp;
         speedY *= speed / sp;
     }
@@ -307,15 +333,11 @@ public class BouncingBall implements Runnable, Component {
 
     @Override
     public void setXAndSpeedX(int x, long dt) {
-        speedX = Main6.UPDATE_TIME * (x - this.x) / dt;
-        speed = Math.sqrt(sqr(speedY) + sqr(speedX));
         this.x = x;
     }
 
     @Override
     public void setYAndSpeedY(int y, long dt) {
-        speedY = Main6.UPDATE_TIME * (y - this.y) / dt;
-        speed = Math.sqrt(sqr(speedY) + sqr(speedX));
         this.y = y;
     }
 
